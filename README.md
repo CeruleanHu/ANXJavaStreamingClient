@@ -3,7 +3,8 @@ ANXJavaStreamingClient
 
 This project provides a Java client to communicate with ANX streaming API.
 
-NOTE BIEN: need to run https://github.com/btcdude/anx-sample/blob/master/wsproxy.js first before running this project 
+<strong>NOTE BIEN:</strong> 
+you need to run https://github.com/btcdude/anx-sample/blob/master/wsproxy.js first before running this project 
 
 Steps to get above wsproxy.js running: 
 
@@ -17,7 +18,7 @@ Steps to get above wsproxy.js running:
 
 4. nodejs wsproxy.js 
 
-To run the Java client: 
+<strong>To run the Java client:</strong> 
 
 Approach 1. 
 
@@ -31,7 +32,7 @@ Approach 2.
 AnxStreamingClient.java can be run directly in intellij IDE 
 
 
-If you're on unix/linux OS, recommended way to install Gradle: 
+<strong>If you're on unix/linux OS, recommended way to install Gradle: </strong>
 
 1. install gvm following instruction at: http://gvmtool.net/ 
 
