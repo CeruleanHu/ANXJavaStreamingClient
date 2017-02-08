@@ -8,17 +8,16 @@ package examples.basic;
  * See LICENSE file for more information
  */
 
-import io.socket.IOAcknowledge;
-import io.socket.IOCallback;
-import io.socket.SocketIO;
-import io.socket.SocketIOException;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.String;
 
-public class AnxStreamingClient implements IOCallback {
-    private SocketIO socket;
+public class AnxStreamingClient{
+    private Socket socket;
 
     String key="fd012755-ed0a-4740-ab16-f8dda02913a7";
     String secret="HpicWK9k/425hqLUF/kluflK5N9rME4xVYYlM7Ux/uJ7UZa1PV1iyeEFovKg6hl/Q59/j00+Fewl0xQMlCh85A==";
@@ -45,8 +44,7 @@ public class AnxStreamingClient implements IOCallback {
     }
 
     public AnxStreamingClient() throws Exception {
-        socket = new SocketIO();
-        socket.connect("http://127.0.0.1:9990/", this);
+        socket = IO.socket("http://127.0.0.1:9990/");
 
         // Sends a string to the server.
 //		socket.send("Hello Server");
@@ -55,7 +53,24 @@ public class AnxStreamingClient implements IOCallback {
 //		socket.send(new JSONObject().put("key", "value").put("key2",
 //				"another value"));
 
-        String[] publicTopics = {"public/tick/ANX/BTCHKD","public/orderBook/ANX/BTCUSD","public/trades/ANX/BTCUSD"};
+        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Connection established");
+            }
+        }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("an Error occured");
+            }
+        }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Connection terminated");
+            }
+        });
+
+        String[] publicTopics = {"public/tick/ANX/BTCUSD","public/orderBook/ANX/BTCUSD","public/trades/ANX/BTCUSD"};
         JSONObject publicTopicJson = new JSONObject().
                 put("secret", secret).
                 put("key",key).
@@ -73,45 +88,41 @@ public class AnxStreamingClient implements IOCallback {
         // Emits an event to the server to subscribe private streaming events only available to user with specified api key and secret
         socket.emit("subscribe", privateTopicJson);
 
-    }
+        socket.on("public/tick/ANX/BTCUSD", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Server triggered streaming event '" + StreamingEventType.getEventName(StreamingEventType.PUBLIC_TICK) + "', args[0]: " + args[0].toString());
 
-    @Override
-    public void onMessage(JSONObject json, IOAcknowledge ack) {
-        try {
-            System.out.println("Server said:" + json.toString(2));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
+                StreamingEvent streamingEvent = parseStreamingEventRawData(StreamingEventType.getEventName(StreamingEventType.PUBLIC_TICK), (JSONObject) args[0]);
+            }
+        });
+        socket.on("public/orderBook/ANX/BTCUSD", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Server triggered streaming event '" + StreamingEventType.getEventName(StreamingEventType.PUBLIC_ORDER_BOOK) + "', args[0]: " + args[0].toString());
 
-    @Override
-    public void onMessage(String data, IOAcknowledge ack) {
-        System.out.println("Server said: " + data);
-    }
+                StreamingEvent streamingEvent = parseStreamingEventRawData(StreamingEventType.getEventName(StreamingEventType.PUBLIC_ORDER_BOOK), (JSONObject) args[0]);
+            }
+        });
+        socket.on("public/trades/ANX/BTCUSD", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Server triggered streaming event '" + StreamingEventType.getEventName(StreamingEventType.PUBLIC_TRADES) + "', args[0]: " + args[0].toString());
 
-    @Override
-    public void onError(SocketIOException socketIOException) {
-        System.out.println("an Error occured");
-        socketIOException.printStackTrace();
-    }
+                StreamingEvent streamingEvent = parseStreamingEventRawData(StreamingEventType.getEventName(StreamingEventType.PUBLIC_TRADES), (JSONObject) args[0]);
+            }
+        });
 
-    @Override
-    public void onDisconnect() {
-        System.out.println("Connection terminated.");
-    }
+        socket.on("private", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("Server triggered streaming event '" +StreamingEventType.getEventName(StreamingEventType.PRIVATE) + "', args[0]: " + args[0].toString());
 
-    @Override
-    public void onConnect() {
-        System.out.println("Connection established");
-    }
+                StreamingEvent streamingEvent = parseStreamingEventRawData(StreamingEventType.getEventName(StreamingEventType.PRIVATE), (JSONObject) args[0]);
+            }
+        });
 
-    @Override
-    public void on(String event, IOAcknowledge ack, Object... args) {
-
-        System.out.println("Server triggered streaming event '" + event + "', args[0]: " + args[0].toString());
-
-        StreamingEvent streamingEvent = parseStreamingEventRawData(event, (JSONObject) args[0]);
-
+        socket.connect();
 
     }
 
